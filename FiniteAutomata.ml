@@ -1,8 +1,8 @@
 (* FiniteAutomata module body *)
 
 (* 
-Aluno 1: ????? mandatory to fill
-Aluno 2: ????? mandatory to fill
+David Pereira: 52890 mandatory to fill
+Pedro Bailao:  53675 mandatory to fill
 
 Comment:
 
@@ -78,34 +78,6 @@ let flatMap f l =
     List.flatten (List.map f l)
 ;;
 
-let rec print_list l=
-	match l with
-	[] ->()
-	| x::xs -> print_string x; print_string "\n";print_list xs
-;;
-
-let rec print_list_list ll=
-	match ll with
-	[]->();
-	| x::xs -> print_list x; print_string "Next List\n"; print_list_list xs
-;;
-
-let rec getAlphabetList ts= (*Creates a list of the symbols of every state. With repeats and not sorted*)
-    match ts with
-    []-> []
-    | x::xs -> 
-    	match x with
-    	 (_,s,_)-> s::(getAlphabetList xs)
-;;
-
-let rec getStateList ts= (*Creates a list of the states of an Automata. Regardless of repeats and order*)
-    match ts with
-    []-> []
-    | x::xs -> 
-    	match x with
-    	 (s1,_,s2)-> [s1;s2]@(getStateList xs)
-;;
-
 let get1 x=
 	match x with (p1,_) -> p1
 ;;
@@ -114,36 +86,49 @@ let get2 x=
 	match x with (_,p2) -> p2
 ;;
 
-let rec isTransitionResultDeterministic t ts=(*Evaluates if a transition t is deterministic*)
+(*Evaluates if a transition t is deterministic*)
+let rec isTransitionResultDeterministic t ts=
 	match t with
 	(s1,sy,s2) -> match ts with
-					[]-> true
-					| x::xs -> match x with
-								(s3,sy2,s4)-> if (s1=s3)&&(sy=sy2)&&(s2<>s4) then false else isTransitionResultDeterministic t xs
+	[]-> true
+	| (s3,sy2,s4)::xs -> if (s1=s3)&&(sy=sy2)&&(s2<>s4) then false 
+					  	 else isTransitionResultDeterministic t xs
 ;;
 
-
-
-let rec statesReachableFrom s ts= (*Returns a list of the states that are reachable from the state s*)
-	match ts with 
-	[] -> []
-	| x::xs -> match x with
-				(s1,sy,s2) -> if s1=s then s2::(statesReachableFrom s xs) else statesReachableFrom s xs
-;;
-
-let rec stateListContainsAcceptedState a_s sl= (*Evaluates if the state list sl contains at least one accepted state*)
+(*Evaluates if the state list sl contains at least one accepted state*)	
+let rec stateListContainsAcceptedState a_s sl= 
 	match a_s with
 	[] -> false;
-	| x::xs -> if List.mem x sl then true else stateListContainsAcceptedState xs sl
+	| x::xs -> if List.mem x sl then true 
+			   else stateListContainsAcceptedState xs sl
 ;;
 
+
 (* PUBLIC FUNCTIONS *)
+
+(*Creates a list of the symbols of every state. 
+With repeats and not sorted*)
 let getAlphabet fa =
+	let rec getAlphabetList ts= 
+    match ts with
+    []-> []
+    | x::xs -> 
+    	match x with
+    	 (_,s,_)-> s::(getAlphabetList xs) in
+
 	canonical(getAlphabetList fa.transitions)
 ;;
 
-
+(*Creates a list of the states of an Automata.
+ Regardless of repeats and order*)
 let getStates fa =
+	let rec getStateList ts= 
+    match ts with
+    []-> []
+    | x::xs -> 
+    	match x with
+    	 (s1,_,s2)-> [s1;s2]@(getStateList xs) in
+
 	canonical (getStateList fa.transitions)
 ;;
 
@@ -154,97 +139,102 @@ let gcut s ts =
     List.partition gcutHelper ts
 ;;
 
+let rec getFinalStatesFromTransitonList tl=
+	match tl with
+	[]-> []
+	| (_,_,s)::xs -> s::getFinalStatesFromTransitonList xs 
+;;
+
+(*Returns a list of the states that are reachable from the state s*)
+(*We placed it amidst the public functions to avoid repeated code*)
+let rec statesReachableFrom sl tl=
+	match sl with
+	[] -> []
+	| x::xs -> (getFinalStatesFromTransitonList (get1(gcut x tl)))@
+	(statesReachableFrom (getFinalStatesFromTransitonList
+	(get1(gcut x tl))) (get2(gcut x tl)))@(statesReachableFrom xs tl) 
+;;
+
+(*Evaluates if a efa is deterministic*)
 let determinism fa =
-	let rec isDeterministic ts= (*Evaluates if a efa is deterministic*)
+	let rec isDeterministic ts= 
 	match ts with
 	[] -> true
-	| x::xs -> match x with (s1,_,_) -> if isTransitionResultDeterministic x (get1(gcut s1 ts)) then isDeterministic xs else false in
+	| x::xs -> match x with 
+	(s1,_,_) -> if isTransitionResultDeterministic x (get1(gcut s1 ts)) 
+	then isDeterministic xs else false in
+
     isDeterministic fa.transitions
 ;;
 
 let reachable fa =
-	canonical (statesReachableFrom fa.initialState (get1(gcut fa.initialState fa.transitions)))
+	canonical(statesReachableFrom [fa.initialState] fa.transitions)
 ;;
 
-let productive fa =(*Doesn't work*)
-(*
-	let rec isStateProductive s ts=
-	match ts with
-	[] -> false
-	| x::xs-> if stateListContainsAcceptedState fa.acceptStates ts then true else isStateProductive s xs in
+let productive fa =
+	let rec auxProductive sl=
+		match sl with 
+		[]-> []
+		| x::xs-> if (stateListContainsAcceptedState fa.acceptStates 
+			(statesReachableFrom [x] fa.transitions)) 
+			then x::auxProductive xs else auxProductive xs in
 
-	let rec productiveHelper sl ts=
-	match sl with
-	[] -> false
-	| x::xs -> if isStateProductive x (get1 (gcut x fa.transitions)) in
-
-	productiveHelper (getStates fa) fa.transitions
-	*)
-	canonical []
+	canonical(auxProductive (getStates fa))
 ;;
-
-
-let accept w fa = (*Works but can replace thos fa.transitions with smaller lists*)
+let accept w fa =
 
 	let rec nextState currentSymbol currentState ts=
 		match ts with
-		[] -> (fa.initialState)
-		| x::xs -> match x with (s1,sy,s2) -> if (s1=currentState && sy=currentSymbol) then s2 else nextState currentSymbol currentState xs in 
+		[] -> currentState
+		| (s1,sy,s2)::xs -> 
+			if (s1=currentState && sy=currentSymbol) then s2
+			else nextState currentSymbol currentState xs in 
     
     let rec stateMachine wrd currentState=
     	match wrd with
     	[] -> false
-    	| x::xs -> if (List.mem (nextState x currentState (get1(gcut currentState fa.transitions))) fa.acceptStates) then true else stateMachine xs (nextState x currentState (get1(gcut currentState fa.transitions))) in 
+    	| x::xs -> if (List.mem (nextState x currentState 
+    				(get1(gcut currentState fa.transitions))) fa.acceptStates) 
+    				then true 
+    				else stateMachine xs (nextState x currentState 
+    				(get1(gcut currentState fa.transitions))) in 
     
     stateMachine w fa.initialState
 ;;
 
-let generate n fa =
-	(*let rec ins x ll=
-	match ll with
-		[] -> [[x]]
-		| l::ls -> (x::l)::ins x ls
-	;;
-
-	let rec power l=
-	match l with
-		[]-> [[]]
-		| x::xs -> power xs @ ins x (power xs)
-	;;
-
-	let rec listOfAllCharCombinations c n=
-		let rec listOfCharNtimes c n=
-			if n=0 then [] else c::(listOfCharNtimes c (n-1)) in
-
-		if n=0 then [] else (listOfCharNtimes c n)::listOfAllCharCombinations c (n-1)
-	;;
-
-	let rec listOfRepeated l n=
-	match l with
-		[]->[[]]
-		| x::xs -> (listOfAllCharCombinations x n)@(listOfRepeated xs n) 
-	;;
-
-    (power (getStates fa))@(listOfRepeated (getStates fa) (List.length (getStates fa)))
-	*)
-
-	(*let rec generateWordCombinations n wl=
-
-
-	let rec generateWords n wl=(*Gera todas as combinaçoes de wl, em tamanho n*)
-	if n=0 then [[]] else
-		match wl with
-		[]-> [[]]
-		| x::xs -> x::
-
-in
-	let rec generateHelper n wl=
-		if n=0 then [[]] else (generateWords n wl)@(generateHelper (n-1) wl)
-in
-*)
-	canonical [];;
+let accept2 w fa = (*METER EXCEPTION AQUI*)
+	let rec nextState currentSymbol currentState ts=
+		match ts with
+		[] -> currentState
+		| (s1,sy,s2)::xs -> 
+			if (s1=currentState && sy=currentSymbol) then s2
+			else nextState currentSymbol currentState xs in 
+    
+    let rec stateMachine wrd currentState=
+    	match wrd with
+    	[] -> currentState
+    	| x::xs -> stateMachine xs (nextState x currentState 
+    				(get1(gcut currentState fa.transitions))) in 
+    
+    if  ( List.mem (stateMachine w fa.initialState) fa.acceptStates ) 
+    			then true else false  
 ;;
 
-let accept2 w fa =
-    false
+let generate n fa =
+
+	let rec addAllMachine sl ll=
+		match sl with
+		[] -> []
+		| x::xs -> (addAll x ll)@(addAllMachine xs ll) in
+
+	let rec generateHelper n sl=
+	if n=0 then [[]] else addAllMachine sl (generateHelper (n-1) sl) in   
+
+	let rec accept_filter wl=
+		match wl with
+		[]-> []
+		| x::xs -> if accept2 x fa then x::accept_filter xs 
+				   else accept_filter xs in
+
+	accept_filter (generateHelper n (getAlphabet fa))
 ;;
