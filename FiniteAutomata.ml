@@ -106,8 +106,8 @@ let rec stateListContainsAcceptedState a_s sl=
 
 (* PUBLIC FUNCTIONS *)
 
-(*Creates a list of the symbols of every state. 
-With repeats and not sorted*)
+(*Creates a list of all the symbols that fa admits,
+no repeats and sorted*)
 let getAlphabet fa =
 	let rec getAlphabetList ts= 
     match ts with
@@ -120,7 +120,7 @@ let getAlphabet fa =
 ;;
 
 (*Creates a list of the states of an Automata.
- Regardless of repeats and order*)
+ without repeats and sorted*)
 let getStates fa =
 	let rec getStateList ts= 
     match ts with
@@ -132,6 +132,9 @@ let getStates fa =
 	canonical (getStateList fa.transitions)
 ;;
 
+		(*Given a state s and a transition list ts returns two lists
+		 One has all the the transitions that originate from s
+		 and the other has the remainder  *)	
 let gcut s ts =
 	let rec gcutHelper t=
 		match t with
@@ -139,6 +142,8 @@ let gcut s ts =
     List.partition gcutHelper ts
 ;;
 
+(*Given a transition list returns all the states that are "next states"*)
+(*We placed it amidst the public functions to avoid repeated code*)
 let rec getFinalStatesFromTransitonList tl=
 	match tl with
 	[]-> []
@@ -157,6 +162,7 @@ let rec statesReachableFrom sl tl=
 
 (*Evaluates if a efa is deterministic*)
 let determinism fa =
+		(*Checks if a given FiniteAutomata is deterministic*)
 	let rec isDeterministic ts= 
 	match ts with
 	[] -> true
@@ -172,6 +178,7 @@ let reachable fa =
 ;;
 
 let productive fa =
+		(*Calculates the states that are able to reach an acceptable state*)
 	let rec auxProductive sl=
 		match sl with 
 		[]-> []
@@ -182,14 +189,14 @@ let productive fa =
 	canonical(auxProductive (getStates fa))
 ;;
 let accept w fa =
-
+		(*Return next state*)
 	let rec nextState currentSymbol currentState ts=
 		match ts with
 		[] -> currentState
 		| (s1,sy,s2)::xs -> 
 			if (s1=currentState && sy=currentSymbol) then s2
 			else nextState currentSymbol currentState xs in 
-    
+    	(* Simulates the behavior of the FinitaAutomata *)
     let rec stateMachine wrd currentState=
     	match wrd with
     	[] -> false
@@ -203,33 +210,35 @@ let accept w fa =
 ;;
 
 let accept2 w fa = (*METER EXCEPTION AQUI*)
+		(* Return next state *)
 	let rec nextState currentSymbol currentState ts=
 		match ts with
 		[] -> currentState
 		| (s1,sy,s2)::xs -> 
 			if (s1=currentState && sy=currentSymbol) then s2
 			else nextState currentSymbol currentState xs in 
-    
+    	(* Simulates the behavior of the FinitaAutomata *)
     let rec stateMachine wrd currentState=
     	match wrd with
     	[] -> currentState
     	| x::xs -> stateMachine xs (nextState x currentState 
     				(get1(gcut currentState fa.transitions))) in 
-    
+    	(*Checks if the the final state is an acceptable state*)
     if  ( List.mem (stateMachine w fa.initialState) fa.acceptStates ) 
     			then true else false  
 ;;
 
 let generate n fa =
-
+		(*Generates a combination for each symbol in sl with the lists of ll*)
 	let rec addAllMachine sl ll=
 		match sl with
 		[] -> []
 		| x::xs -> (addAll x ll)@(addAllMachine xs ll) in
-
+		(*Generates a combination of size n of the symbols in sl*)
 	let rec generateHelper n sl=
 	if n=0 then [[]] else addAllMachine sl (generateHelper (n-1) sl) in   
-
+		(*Filters the results of generateHelper
+		leaving only acceptable words*)
 	let rec accept_filter wl=
 		match wl with
 		[]-> []
