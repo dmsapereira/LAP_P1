@@ -1,18 +1,11 @@
 (* FiniteAutomata module body *)
 
 (* 
-David Pereira: 52890 mandatory to fill
-Pedro Bailao:  53675 mandatory to fill
+David Pereira: 52890
+Pedro Bailao:  53675 
 
 Comment:
-
-?????????????????????????
-?????????????????????????
-?????????????????????????
-?????????????????????????
-?????????????????????????
-?????????????????????????
-
+We swapped accept2 and generate's position because generate uses accept2
 *)
 
 (*
@@ -86,15 +79,6 @@ let get2 x=
 	match x with (_,p2) -> p2
 ;;
 
-(*Evaluates if a transition t is deterministic*)
-let rec isTransitionResultDeterministic t ts=
-	match t with
-	(s1,sy,s2) -> match ts with
-	[]-> true
-	| (s3,sy2,s4)::xs -> if (s1=s3)&&(sy=sy2)&&(s2<>s4) then false 
-					  	 else isTransitionResultDeterministic t xs
-;;
-
 (*Evaluates if the state list sl contains at least one accepted state*)	
 let rec stateListContainsAcceptedState a_s sl= 
 	match a_s with
@@ -142,6 +126,8 @@ let gcut s ts =
     List.partition gcutHelper ts
 ;;
 
+(*PRIVATE FUNCTIONS*)
+
 (*Given a transition list returns all the states that are "next states"*)
 (*We placed it amidst the public functions to avoid repeated code*)
 let rec getFinalStatesFromTransitonList tl=
@@ -160,8 +146,18 @@ let rec statesReachableFrom sl tl=
 	(get1(gcut x tl))) (get2(gcut x tl)))@(statesReachableFrom xs tl) 
 ;;
 
+(*BACK TO PUBLIC FUNCTIONS*)
+
 (*Evaluates if a efa is deterministic*)
 let determinism fa =
+	(*Evaluates if a transition t is deterministic*)
+	let rec isTransitionResultDeterministic t ts=
+	match t with
+	(s1,sy,s2) -> match ts with
+	[]-> true
+	| (s3,sy2,s4)::xs -> if (s1=s3)&&(sy=sy2)&&(s2<>s4) then false 
+					  	 else isTransitionResultDeterministic t xs
+
 		(*Checks if a given FiniteAutomata is deterministic*)
 	let rec isDeterministic ts= 
 	match ts with
@@ -171,8 +167,10 @@ let determinism fa =
 	then isDeterministic xs else false in
 
     isDeterministic fa.transitions
-;;
+	;;
 
+(*Lists all the states that are reachable following a path 
+from a the initial state*)
 let reachable fa =
 	canonical(statesReachableFrom [fa.initialState] fa.transitions)
 ;;
@@ -192,33 +190,39 @@ let accept w fa =
 		(*Return next state*)
 	let rec nextState currentSymbol currentState ts=
 		match ts with
-		[] -> currentState
+		[] -> "FAIL"
 		| (s1,sy,s2)::xs -> 
 			if (s1=currentState && sy=currentSymbol) then s2
 			else nextState currentSymbol currentState xs in 
     	(* Simulates the behavior of the FinitaAutomata *)
     let rec stateMachine wrd currentState=
+    	if currentState="FAIL" then false else(*State FAIL is a state that is 
+    	never present in a transition, therefore its presence means that 
+    	an unexpected case was found*)
     	match wrd with
     	[] -> false
     	| x::xs -> if (List.mem (nextState x currentState 
     				(get1(gcut currentState fa.transitions))) fa.acceptStates) 
     				then true 
     				else stateMachine xs (nextState x currentState 
-    				(get1(gcut currentState fa.transitions))) in 
+    				(get1(gcut currentState fa.transitions))) in
     
     stateMachine w fa.initialState
 ;;
 
-let accept2 w fa = (*METER EXCEPTION AQUI*)
+let accept2 w fa = 
 		(* Return next state *)
 	let rec nextState currentSymbol currentState ts=
 		match ts with
-		[] -> currentState
+		[] -> "FAIL"
 		| (s1,sy,s2)::xs -> 
 			if (s1=currentState && sy=currentSymbol) then s2
 			else nextState currentSymbol currentState xs in 
     	(* Simulates the behavior of the FinitaAutomata *)
     let rec stateMachine wrd currentState=
+    	if currentState="FAIL" then "FAIL" else(*State FAIL is a state that is 
+    	never present in a transition, therefore its presence means that 
+    	an unexpected case was found*)
     	match wrd with
     	[] -> currentState
     	| x::xs -> stateMachine xs (nextState x currentState 
@@ -226,6 +230,7 @@ let accept2 w fa = (*METER EXCEPTION AQUI*)
     	(*Checks if the the final state is an acceptable state*)
     if  ( List.mem (stateMachine w fa.initialState) fa.acceptStates ) 
     			then true else false  
+
 ;;
 
 let generate n fa =
